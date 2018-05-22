@@ -14,8 +14,8 @@ const state = {
   listAdded: [],
 };
 const handler = (e) => {
+  e.preventDefault();
   if (state.valid) {
-    e.preventDefault();
     const formData = new FormData(e.target);
     const adress = _.fromPairs([...formData]).url;
     axios.get(`https://cors-proxy.htmldriven.com/?url=${adress}`)
@@ -35,7 +35,9 @@ const handler = (e) => {
         items.forEach((item) => {
           const li2 = document.createElement('li');
           const a = document.createElement('a');
+          const link = item.querySelector('link').textContent;
           a.textContent = item.getElementsByTagName('title')[0].textContent;
+          a.href = link;
           li2.appendChild(a);
           listArticles.appendChild(li2);
         });
@@ -48,6 +50,7 @@ const handler2 = (e) => {
   const str = e.target.value;
   if ((str && !isURL(str)) || state.listAdded.includes(str)) {
     e.target.setAttribute('style', 'border-color: red');
+    state.valid = false;
   } else {
     e.target.setAttribute('style', 'border-color: #80bdff');
     state.valid = true;
