@@ -9,6 +9,7 @@ const parser = new DOMParser();
 const form = document.querySelector('form');
 const input = document.querySelector('input');
 const submit = document.querySelector('.btn-primary');
+const corsProxy = 'https://cors-proxy.htmldriven.com/';
 const state = {
   feeds: [],
   addedFeedsList: [],
@@ -18,7 +19,7 @@ const state = {
 const extractData = (feed) => {
   const channel = parser.parseFromString(feed, 'application/xml').querySelector('channel');
   const [title, description] = channel.childNodes;
-  const items = channel.querySelectorAll('item');
+  const items = [...channel.querySelectorAll('item')];
   return { title, description, items };
 };
 const showModal = (description) => {
@@ -66,12 +67,13 @@ const getData = (e) => {
   submit.setAttribute('disabled', 1);
   const formData = new FormData(e.target);
   const adress = _.fromPairs([...formData]).url;
-  axios.get(`https://cors-proxy.htmldriven.com/?url=${adress}`)
+  axios.get(`${corsProxy}?url=${adress}`)
     .then((res) => {
       submit.removeAttribute('disabled');
       const span = document.querySelector('#err');
       span.textContent = '';
       const obj = extractData(res.data.body);
+      obj.adress = adress;
       state.feeds.push(obj);
       state.addedFeedsList.push(adress);
       displayData();
@@ -82,11 +84,11 @@ const getData = (e) => {
     });
 };
 
-const isUrlValid = str => (isURL(str) && !state.addedFeedsList.includes(str));
+const isUrlValid = (str, list) => (isURL(str) && !list.includes(str));
 
 const checkUrl = (e) => {
   const str = e.target.value;
-  if (!isUrlValid(str)) {
+  if (!isUrlValid(str, state.addedFeedsList)) {
     e.target.setAttribute('style', 'border-color: red');
     submit.setAttribute('disabled', 1);
     state.valid = false;
@@ -98,3 +100,23 @@ const checkUrl = (e) => {
 };
 input.addEventListener('input', checkUrl);
 form.addEventListener('submit', getData);
+
+setInterval(() => {
+  state.feeds.forEach(({ adress, items }) => {
+    axios.get(`${corsProxy}?url=${adress}`)
+      .then((res) => {
+        const obj = extractData(res.data.body);
+        const newItems = [...obj.items].filter((item2) => {
+          const title2 = item2.querySelector('title');
+          return [...items].every((item1) => {
+            const title1 = item1.querySelector('title');
+            return title1.textContent !== title2.textContent;
+          });
+        });
+        if (newItems.length > 0) {
+          items.push(...newItems);
+          displayData();
+        }
+      });
+  });
+}, 5000);
