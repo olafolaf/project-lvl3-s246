@@ -6,9 +6,6 @@ import { isURL } from 'validator';
 import $ from 'jquery';
 
 const parser = new DOMParser();
-const form = document.querySelector('form');
-const input = document.querySelector('input');
-const submit = document.querySelector('.btn-primary');
 const corsProxy = 'https://cors-proxy.htmldriven.com/';
 const state = {
   feeds: [],
@@ -18,8 +15,11 @@ const state = {
 
 const extractData = (feed) => {
   const channel = parser.parseFromString(feed, 'application/xml').querySelector('channel');
+  const items = [...channel.querySelectorAll('item')].map((item) => {
+    const [title, link, description] = item.childNodes;
+    return { title, [link]: link.textContent, description };
+  });
   const [title, description] = channel.childNodes;
-  const items = [...channel.querySelectorAll('item')];
   return { title, description, items };
 };
 const showModal = (description) => {
@@ -27,7 +27,7 @@ const showModal = (description) => {
   modalBody.textContent = description.textContent;
   $('.modal').modal('show');
 };
-const displayData = () => {
+const displayData = (input) => {
   const listFeeds = document.querySelector('.list-feeds > ul');
   const listArticles = document.querySelector('.list-articles > ul');
   [...listArticles.childNodes].forEach(child => child.remove()); // !!!!
@@ -44,10 +44,8 @@ const displayData = () => {
     feed.items.forEach((item) => {
       const li2 = document.createElement('li');
       const a = document.createElement('a');
-      const title = item.querySelector('title');
-      const link = item.querySelector('link').textContent;
+      const { title, link, description } = item;
       const button = document.createElement('input');
-      const description = item.querySelector('description');
       button.setAttribute('class', 'btn btn-primary');
       button.setAttribute('type', 'submit');
       button.setAttribute('value', 'description');
@@ -62,7 +60,7 @@ const displayData = () => {
   });
 };
 
-const getData = (e) => {
+const getData = (e, submit, input) => {
   e.preventDefault();
   submit.setAttribute('disabled', 1);
   const formData = new FormData(e.target);
@@ -76,7 +74,7 @@ const getData = (e) => {
       obj.adress = adress;
       state.feeds.push(obj);
       state.addedFeedsList.push(adress);
-      displayData();
+      displayData(input);
     })
     .catch(() => {
       const span = document.querySelector('#err');
@@ -84,9 +82,9 @@ const getData = (e) => {
     });
 };
 
-const isUrlValid = (str, list) => (isURL(str) && !list.includes(str));
+const isUrlValid = (url, addedFeedsList) => (isURL(url) && !addedFeedsList.includes(url));
 
-const checkUrl = (e) => {
+const checkUrl = (e, submit) => {
   const str = e.target.value;
   if (!isUrlValid(str, state.addedFeedsList)) {
     e.target.setAttribute('style', 'border-color: red');
@@ -98,8 +96,15 @@ const checkUrl = (e) => {
     state.valid = true;
   }
 };
-input.addEventListener('input', checkUrl);
-form.addEventListener('submit', getData);
+const run = () => {
+  const form = document.querySelector('form');
+  const input = document.querySelector('input');
+  const submit = document.querySelector('.btn-primary');
+  input.addEventListener('input', e => checkUrl(e, submit));
+  form.addEventListener('submit', e => getData(e, submit, input));
+};
+
+run();
 
 setInterval(() => {
   state.feeds.forEach(({ adress, items }) => {
@@ -107,9 +112,9 @@ setInterval(() => {
       .then((res) => {
         const obj = extractData(res.data.body);
         const newItems = [...obj.items].filter((item2) => {
-          const title2 = item2.querySelector('title');
+          const title2 = item2.title;
           return [...items].every((item1) => {
-            const title1 = item1.querySelector('title');
+            const title1 = item1.title;
             return title1.textContent !== title2.textContent;
           });
         });
