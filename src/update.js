@@ -1,8 +1,14 @@
-const update = (state, extractData, displayData, corsProxy, axios, input) => {
+import axios from 'axios';
+import render from './render';
+import parseRss from './parser';
+
+const corsProxy = 'https://cors-proxy.htmldriven.com/';
+
+const update = (input, state) => {
   state.feeds.forEach(({ adress, items }) => {
     axios.get(`${corsProxy}?url=${adress}`)
       .then((res) => {
-        const obj = extractData(res.data.body);
+        const obj = parseRss(res.data.body);
         const newItems = obj.items.filter((item2) => {
           const title2 = item2.title;
           return [...items].every((item1) => {
@@ -13,10 +19,10 @@ const update = (state, extractData, displayData, corsProxy, axios, input) => {
         if (newItems.length > 0) {
           items.push(...newItems);
           console.log(items);
-          displayData();
+          render(input, state);
         }
       });
   });
-  setTimeout(() => update(state, extractData, displayData, corsProxy, axios), 5000);
+  setTimeout(() => update(input, state), 5000);
 };
 export default update;
