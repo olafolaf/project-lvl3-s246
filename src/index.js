@@ -19,7 +19,7 @@ const extractData = (feed) => {
   const channel = parser.parseFromString(feed, 'application/xml').querySelector('channel');
   const items = [...channel.querySelectorAll('item')].map((item) => {
     const [title, link, description] = item.childNodes;
-    return { title, [link]: link.textContent, description };
+    return { title, link: link.textContent, description };
   });
   const [title, description] = channel.childNodes;
   return { title, description, items };
@@ -57,7 +57,9 @@ const displayData = (input) => {
       li2.appendChild(a);
       li2.appendChild(button);
       listArticles.appendChild(li2);
-      input.value = '';
+      if (input) {
+        input.value = '';
+      }
     });
   });
 };
@@ -102,4 +104,3 @@ const checkUrl = (e, submit) => {
 run(checkUrl, getData);
 
 update(state, extractData, displayData, corsProxy, axios);
-

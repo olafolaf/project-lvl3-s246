@@ -1,4 +1,4 @@
-const update = (state, extractData, displayData, corsProxy, axios) => {
+const update = (state, extractData, displayData, corsProxy, axios, input) => {
   state.feeds.forEach(({ adress, items }) => {
     axios.get(`${corsProxy}?url=${adress}`)
       .then((res) => {
@@ -12,6 +12,7 @@ const update = (state, extractData, displayData, corsProxy, axios) => {
         });
         if (newItems.length > 0) {
           items.push(...newItems);
+          console.log(items);
           displayData();
         }
       });
