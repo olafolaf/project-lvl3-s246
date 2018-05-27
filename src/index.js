@@ -4,6 +4,8 @@ import axios from 'axios';
 import _ from 'lodash';
 import { isURL } from 'validator';
 import $ from 'jquery';
+import run from './run';
+import update from './update';
 
 const parser = new DOMParser();
 const corsProxy = 'https://cors-proxy.htmldriven.com/';
@@ -96,32 +98,8 @@ const checkUrl = (e, submit) => {
     state.valid = true;
   }
 };
-const run = () => {
-  const form = document.querySelector('form');
-  const input = document.querySelector('input');
-  const submit = document.querySelector('.btn-primary');
-  input.addEventListener('input', e => checkUrl(e, submit));
-  form.addEventListener('submit', e => getData(e, submit, input));
-};
 
-run();
+run(checkUrl, getData);
 
-setInterval(() => {
-  state.feeds.forEach(({ adress, items }) => {
-    axios.get(`${corsProxy}?url=${adress}`)
-      .then((res) => {
-        const obj = extractData(res.data.body);
-        const newItems = [...obj.items].filter((item2) => {
-          const title2 = item2.title;
-          return [...items].every((item1) => {
-            const title1 = item1.title;
-            return title1.textContent !== title2.textContent;
-          });
-        });
-        if (newItems.length > 0) {
-          items.push(...newItems);
-          displayData();
-        }
-      });
-  });
-}, 5000);
+update(state, extractData, displayData, corsProxy, axios);
+
